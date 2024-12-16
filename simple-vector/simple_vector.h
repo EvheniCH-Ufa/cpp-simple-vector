@@ -1,3 +1,7 @@
+
+/* Прошу прощения, в прошлый раз случайно нажал на кнопку "Отправить на проверку" на телефоне */
+/* Сейчас все замечания исправлены */
+
 #pragma once
 
 #include <algorithm>
@@ -6,9 +10,7 @@
 #include <stdexcept>
 #include <utility>
 
-
 #include "array_ptr.h"
-//#include "main.cpp"
 
 
 class ReserveProxyObj
@@ -42,27 +44,14 @@ public:
         // Напишите тело конструктора самостоятельно
         capacity_ = size;
         current_size_ = capacity_;
-
-        //std::fill(std::make_move_iterator(begin()), std::make_move_iterator(end()), default_value);
-        for (auto it_b = begin(); it_b != end(); ++it_b)
-        {
-            Type tmp{};
-            *it_b = std::move(tmp);
-        }
+        std::generate(begin(), end(), [] { return Type{}; });
     }
 
     explicit SimpleVector(ReserveProxyObj obj_whith_new_capacity) : data_(ArrayPtr<Type>(obj_whith_new_capacity.Get()))
     {
         // Напишите тело конструктора самостоятельно
         capacity_ = obj_whith_new_capacity.Get();
-
-        //  std::fill(data_.Get(), data_.Get() + capacity_, default_value);
-        for (auto it_b = data_.Get(); it_b != data_.Get() + capacity_; ++it_b) // куратор разрешил такую замену
-        {
-            Type tmp{};
-            *it_b = std::move(tmp);
-        }
-
+        std::fill(data_.Get(), data_.Get() + capacity_, default_value);
         current_size_ = 0;
     }
 
@@ -72,14 +61,9 @@ public:
     {
         capacity_ = size;
         current_size_ = capacity_;
-
-        for (auto it_b = begin(); it_b != end(); ++it_b)
-        {
-            Type tmp{ value };
-            *it_b = std::move(tmp);
-        }
+        std::fill(begin(), end(), value);
     }
-
+    
     SimpleVector(size_t size, Type&& value) : data_(ArrayPtr<Type>(size))
     {
         capacity_ = size;
@@ -93,13 +77,7 @@ public:
         // Напишите тело конструктора самостоятельно
         capacity_ = init.size();
         current_size_ = capacity_;
-
-        auto it = begin();
-        for (const auto& elem : init)
-        {
-            *it = elem;
-            ++it;
-        }
+        std::copy(init.begin(), init.end(), begin());
     }
 
     void Reserve(size_t new_capacity)
@@ -194,13 +172,7 @@ public:
         {
             if (new_size > current_size_)
             {
-                //  std::fill(data_.Get() + current_size_, data_.Get() + new_size, default_value);
-                for (auto it_b = data_.Get() + current_size_; it_b != data_.Get() + new_size; ++it_b)
-                {
-                    Type tmp{};
-                    *it_b = std::move(tmp);
-                }
-
+                std::generate(data_.Get() + current_size_, data_.Get() + new_size, [] { return Type{}; });
             }
             current_size_ = new_size;
         }
@@ -244,7 +216,6 @@ public:
         {
             return nullptr;
         }
-
         return data_.Get();
     }
 
@@ -257,6 +228,7 @@ public:
             return nullptr;
         }
         return &(data_[current_size_]);
+//        return begin() + current_size_;
     }
 
     // Возвращает константный итератор на начало массива
@@ -300,7 +272,6 @@ public:
     {
         // Напишите тело конструктора самостоятельно
         std::copy(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), data_.Get());
-        //        std::copy(other.begin(), other.end(), data_.Get());
         current_size_ = other.GetSize();
         capacity_ = current_size_;
     }
@@ -308,13 +279,7 @@ public:
     SimpleVector(SimpleVector&& other) : data_(ArrayPtr<Type>(other.GetSize()))
     {
         // Напишите тело конструктора самостоятельно
-        std::copy(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), data_.Get());
-//                std::copy(other.begin(), other.end(), data_.Get());
-        current_size_ = std::move(other.current_size_);
-        capacity_ = current_size_;
-
-        other.current_size_ = 0;
-        other.capacity_ = 0;
+        swap(other);
     }
 
 
@@ -326,13 +291,14 @@ public:
             return *this;
         }
 
-        auto new_size = rhs.GetSize();
-        ArrayPtr<Type> tmp_arr(new_size);
-        std::copy(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()), tmp_arr.Get());
-        data_.swap(tmp_arr);
+        if (rhs.current_size_ == 0)
+        {
+            Clear();
+            return *this;
+        }
 
-        current_size_ = new_size;
-        capacity_ = new_size;
+        SimpleVector<Type> tmp(rhs);
+        swap(tmp);
         return *this;
     }
 
@@ -343,7 +309,6 @@ public:
         // Напишите тело самостоятельно
         Resize(current_size_ + 1);
         //        memcpy((end() - 1), &item, sizeof(item));
-
         *(end() - 1) = item;
     }
 
@@ -362,6 +327,7 @@ public:
     Iterator Insert(ConstIterator pos, const Type& value)
     {
         // Напишите тело самостоятельно
+        assert(pos >= begin() && pos <= end());
         auto dist = std::distance(begin(), const_cast<Type*>(pos));
 
         Resize(current_size_ + 1);
@@ -371,10 +337,10 @@ public:
 
         Type* it_first = const_cast<Type*>(begin());
         std::advance(it_first, dist);
-
         std::copy_backward(std::make_move_iterator(it_first), std::make_move_iterator(end() - 1), end());
 
         *it_first = value;
+        //        memcpy(it_first, &value, sizeof(value));
         return it_first;
     }
 
@@ -382,6 +348,7 @@ public:
     Iterator Insert(ConstIterator pos, Type&& value)
     {
         // Напишите тело самостоятельно
+        assert(pos >= begin() && pos <= end());
         auto dist = std::distance(begin(), const_cast<Type*>(pos));
 
         Resize(current_size_ + 1);
@@ -391,13 +358,12 @@ public:
 
         Type* it_first = const_cast<Type*>(begin());
         std::advance(it_first, dist);
-
         std::copy_backward(std::make_move_iterator(it_first), std::make_move_iterator(end() - 1), end());
 
         *it_first = std::move(value);
+        //        memcpy(it_first, &value, sizeof(value));
         return it_first;
     }
-
 
     // "Удаляет" последний элемент вектора. Вектор не должен быть пустым
     void PopBack() noexcept
@@ -412,6 +378,7 @@ public:
     // Удаляет элемент вектора в указанной позиции
     Iterator Erase(ConstIterator pos)
     {
+        assert(pos >= begin() && pos < end());
         if (current_size_ == 0)
         {
             return end();
@@ -449,6 +416,7 @@ private:
     size_t current_size_ = 0;
     Type default_value = Type{};
 };
+
 
 ///  перегрузка операторов----------------------------------------------------------------------------
 
