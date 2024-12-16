@@ -1,8 +1,14 @@
+
+/* Прошу прощения, в прошлый раз случайно нажал на кнопку "Отправить на проверку" на телефоне */
+/* Сейчас все замечания исправлены */
+
 #pragma once
 
 #include <cassert>
 #include <cstdlib>
 #include <utility>
+
+
 
 template <typename Type>
 class ArrayPtr {
@@ -14,27 +20,20 @@ public:
     // Если size == 0, поле raw_ptr_ должно быть равно nullptr
     explicit ArrayPtr(size_t size) {
         // Реализуйте конструктор самостоятельно
-        if (raw_ptr_ != nullptr)
-        {
-            delete[] raw_ptr_;
-        }
+        delete[] raw_ptr_;
         raw_ptr_ = size ? new Type[size] : nullptr;
     }
 
     // Конструктор из сырого указателя, хранящего адрес массива в куче либо nullptr
     explicit ArrayPtr(Type* raw_ptr) noexcept {
-        // Реализуйте конструктор самостоятельно   или в списке инициализации...
-        if (raw_ptr_ != nullptr)
-        {
-            delete[] raw_ptr_;
-        }
+        delete[] raw_ptr_;
         raw_ptr_ = raw_ptr;
     }
 
 
-    explicit ArrayPtr(Type&& value) noexcept {
+    explicit ArrayPtr(ArrayPtr& arr) noexcept {
         // Реализуйте конструктор самостоятельно   или в списке инициализации... это новое
-        raw_ptr_ = new Type(value);
+        std::swap(raw_ptr_, arr.raw_ptr_);
     }
 
     // Запрещаем копирование
@@ -49,11 +48,21 @@ public:
     // Запрещаем присваивание
     ArrayPtr& operator=(const ArrayPtr&) = delete;
 
+    ArrayPtr& operator=(ArrayPtr& arr)
+    {
+        if (raw_ptr_ != arr.raw_ptr_)
+        {
+            std::swap(raw_ptr_, arr.raw_ptr_);
+        }
+        return this;
+    }
+
     // Прекращает владением массивом в памяти, возвращает значение адреса массива
     // После вызова метода указатель на массив должен обнулиться
     [[nodiscard]] Type* Release() noexcept {
         // Заглушка. Реализуйте метод самостоятельно
-        Type* tmp = raw_ptr_;
+        Type* tmp;
+        std::exchange(tmp, raw_ptr_); //new
         raw_ptr_ = nullptr;
         return tmp;
     }
@@ -85,12 +94,9 @@ public:
     // Обменивается значениям указателя на массив с объектом other
     void swap(ArrayPtr& other) noexcept {
         // Реализуйте метод самостоятельно
-        Type* tmp = other.raw_ptr_;
-        other.raw_ptr_ = raw_ptr_;
-        raw_ptr_ = tmp;
+        std::swap(other.raw_ptr_, raw_ptr_);
     }
 
 private:
     Type* raw_ptr_ = nullptr;
 };
-
