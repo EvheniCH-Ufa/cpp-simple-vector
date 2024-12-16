@@ -1,7 +1,3 @@
-
-/* Прошу прощения, в прошлый раз случайно нажал на кнопку "Отправить на проверку" на телефоне */
-/* Сейчас все замечания исправлены */
-
 #pragma once
 
 #include <cassert>
@@ -31,7 +27,7 @@ public:
     }
 
 
-    explicit ArrayPtr(ArrayPtr& arr) noexcept {
+    explicit ArrayPtr(ArrayPtr&& arr) noexcept {
         // Реализуйте конструктор самостоятельно   или в списке инициализации... это новое
         std::swap(raw_ptr_, arr.raw_ptr_);
     }
@@ -48,7 +44,7 @@ public:
     // Запрещаем присваивание
     ArrayPtr& operator=(const ArrayPtr&) = delete;
 
-    ArrayPtr& operator=(ArrayPtr& arr)
+    ArrayPtr& operator=(ArrayPtr&& arr)
     {
         if (raw_ptr_ != arr.raw_ptr_)
         {
@@ -61,10 +57,7 @@ public:
     // После вызова метода указатель на массив должен обнулиться
     [[nodiscard]] Type* Release() noexcept {
         // Заглушка. Реализуйте метод самостоятельно
-        Type* tmp;
-        std::exchange(tmp, raw_ptr_); //new
-        raw_ptr_ = nullptr;
-        return tmp;
+        return std::exchange(raw_ptr_, nullptr);
     }
 
     // Возвращает ссылку на элемент массива с индексом index
